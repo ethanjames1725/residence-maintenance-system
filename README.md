@@ -4,8 +4,13 @@ A Django web application for reporting and tracking maintenance issues in studen
 **Full-Stack Django Project — Deliverable 1: Use Case**<br>
 **Author:** Ethan Smith<br>
 **Date:** 18 August 2026<br>
-**Version:** 1.0<br>
+**Version:** 1.1<br>
 **Status:** Awaiting approval
+
+> **1.1** — Registration changed from selecting a bed space to entering a claim code
+> issued at check-in. The previous design required the registration page to display
+> unoccupied bed spaces, which would have published which rooms in the residence are
+> empty. See section 5.
 
 ---
 
@@ -100,25 +105,59 @@ work, posts updates and resolves reports. Also maintains the residence structure
 buildings, units, bed spaces and common areas — through the administration interface.
 
 ## 5. Registration and Bed Space Assignment
+ 
+A student's account must be tied to the correct bed space. If it is not, maintenance
+staff are sent to the wrong room, and — more seriously — one student's reports could
+become visible to another.
+ 
+**Registration requires a claim code issued by reception.** When a student is given
+the keys to their room, they are also given a short code that belongs to that bed
+space and no other. Registration asks for a username, a password and that code. The
+building, unit and bed space are all determined by the code; the student selects
+nothing and types no room number.
+ 
+This mirrors how the residence this use case is based on already works. Residents
+were issued account codes at reception when they were first allowed into their rooms,
+alongside their keys and electricity account details. Adopting the same process means
+the system fits an existing procedure rather than requiring a new one.
+ 
+### 5.1 Why not selection from a list
+ 
+An earlier version of this design offered three dependent dropdowns — building, then
+unit, then bed space — populated from the database. That approach was rejected on
+security grounds.
+ 
+To be usable, the bed space dropdown would have to list **unoccupied** bed spaces. The
+registration page is public and requires no account to view. The result would be a
+publicly readable list of which rooms in a residential building are currently empty.
+ 
+That directly contradicts section 6.2, which restricts what the system will disclose about
+individual rooms precisely because such information assists anyone intending to target
+one. A system that hides which room has a broken lock, while publishing which rooms
+are unoccupied, has not solved the problem.
+ 
+The claim code removes the disclosure entirely. The registration page reveals nothing
+about the residence: not how many buildings exist, not how many rooms, not which are
+occupied.
+ 
+### 5.2 Properties of the code
+ 
+- **Issued in person.** Reception hands the code over at check-in, alongside the keys.
+- **Unique to one bed space.** No two bed spaces share a code.
+- **Single use.** Once an account is linked to a bed space, that code cannot be used
+  again. This is enforced at the database level by the one-to-one relationship between
+  a student profile and a bed space.
+- **Not guessable.** Codes are randomly generated, not sequential, so knowing one code
+  reveals nothing about any other.
+- **Readable aloud.** Characters that are easily confused in speech or print are
+  excluded from the alphabet.
 
-Assigning a student to the wrong room would misdirect maintenance staff and, more
-seriously, could expose one student's reports to another. Registration is therefore
-designed so that an incorrect assignment is difficult to make by accident.
-
-**The student never types a room number.** The residence structure is loaded into the
-system in advance by staff. During registration the student makes three dependent
-selections — building, then unit, then bed space — each populated from the database.
-Free text entry is not offered, so a mistyped room number cannot occur.
-
-**A bed space may be claimed by only one account.** Bed space occupancy is enforced as
-unique at the database level. If a student selects a bed space that another account
-already holds, registration is refused and the student is directed to reception. This
-catches the common case of a student selecting a neighbour's bed space by mistake.
-
-A residual risk remains: a student could select an unoccupied bed space that is not
-theirs. Two mitigations are noted — a one-time claim code issued at check-in and
-recorded against the bed space (see section 8.2), and the practical backstop that a
-technician attending the wrong room will identify the error immediately.
+### 5.3 Failed registration
+ 
+If a code is not recognised, or belongs to a bed space that is already claimed, the
+student is told the code is not valid and directed to reception. **The same message is
+shown in both cases.** Distinguishing between "no such code" and "already used" would
+confirm to someone entering codes at random when they had found a real one.
 
 ## 6. Report Visibility and Corroboration
 
@@ -213,7 +252,7 @@ site visit — it is a single action on the dashboard.
 ### 8.1 In Scope
 
 **A student can:**
-- Register an account by selecting their building, unit and bed space, then log in and
+- Register an account using a claim code issued by reception, then log in and
   out
 - Report a fault, following the three-step flow: where, what, and detail
 - Corroborate an existing report for a shared area they have access to
@@ -236,17 +275,21 @@ site visit — it is a single action on the dashboard.
   interface
 
 ### 8.2 Out of Scope
-
+ 
 Excluded to keep the project deliverable within the available time. Recorded as
 possible future enhancements.
 
-- One-time claim codes issued at check-in to verify bed space assignment
+- Reissuing a claim code when a room changes occupant at the end of a lease
+- Rate limiting or lockout after repeated failed registration attempts
 - Photograph upload (requires external media storage to survive redeployment)
 - Email or SMS notification of status changes
 - A third role for a residence manager with oversight and reporting dashboards
 - Contractor scheduling, parts ordering and cost tracking
 - Statistical reporting on response times and recurring faults
-
+- Serving multiple residences from a single deployment. Each residence currently runs
+  its own instance with its own database, which makes isolation structural rather than
+  dependent on correct filtering in application code.
+  
 ## 9. Reporting Flow
 
 A student reporting a fault answers three questions in sequence.
@@ -304,19 +347,22 @@ the original reporter closes it.
 
 ## 11. Use Case Narratives
 
-### UC-01 — Student registers and claims a bed space
-
+### UC-01 — Student registers using a claim code
+ 
 - **Actor:** Student
-- **Precondition:** The residence structure has been loaded by staff
+- **Precondition:** The residence structure has been loaded by staff, and the student
+  has been issued a claim code by reception
 - **Main flow:**
-  1. Student opens the registration page and enters account details
-  2. Student selects their building; the system offers the units in that building
-  3. Student selects their unit; the system offers the unoccupied bed spaces in it
-  4. Student selects their bed space and submits
-  5. System creates the account and links it to that bed space
-- **Alternate flow:** If the selected bed space has been claimed by another account,
-  registration is refused with a message directing the student to reception
-- **Postcondition:** The student is associated with exactly one bed space
+  1. Student opens the registration page and enters a username and password
+  2. Student enters the claim code issued to them
+  3. System looks up the bed space holding that code
+  4. System creates the account and links it to that bed space
+  5. Student is logged in and taken to their reports page
+- **Alternate flow:** If the code is not recognised, or its bed space is already
+  claimed, registration is refused with a message stating the code is not valid and
+  directing the student to reception. The two cases are not distinguished.
+- **Postcondition:** The student is associated with exactly one bed space, and the
+  code cannot be used again
 
 ### UC-02 — Student reports a fault in their own room
 
@@ -404,8 +450,9 @@ The project will be considered successful when:
 
 1. A student can register, claim a bed space, report a fault, follow it to resolution
    and confirm the fix without assistance.
-2. A student cannot register against a bed space that is already occupied, and cannot
-   enter a room identifier by free text at any point.
+2. A student cannot register without a claim code issued by reception, and the
+   registration page discloses nothing about the residence structure — including
+   which bed spaces are unoccupied.
 3. A fault reported with a hazard indicator is automatically prioritised above a
    routine fault, without the student having assessed its urgency.
 4. A staff member can move a report through every status in the workflow and can
