@@ -1,5 +1,6 @@
 import secrets
 
+from django.contrib.auth.models import User
 from django.db import models
 
 CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -14,6 +15,26 @@ def generate_claim_code():
     """
     raw = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
     return f"{raw[:4]}-{raw[4:]}"
+
+
+class Priority(models.IntegerChoices):
+    """Integers so that higher means more urgent.
+
+    This lets the category floor be applied with max().
+    """
+    LOW = 1, "Low"
+    STANDARD = 2, "Standard"
+    HIGH = 3, "High"
+    EMERGENCY = 4, "Emergency"
+
+
+class Status(models.TextChoices):
+    REPORTED = "reported", "Reported"
+    ACKNOWLEDGED = "acknowledged", "Acknowledged"
+    IN_PROGRESS = "in_progress", "In Progress"
+    RESOLVED = "resolved", "Resolved"
+    CLOSED = "closed", "Closed"
+    CANCELLED = "cancelled", "Cancelled"
 
 
 class Building(models.Model):
@@ -32,7 +53,7 @@ class Unit(models.Model):
     number = models.CharField(max_length=10)
 
     class Meta:
-        unique_together = ["building", "number"]
+        unique_together = ("building", "number")
 
     def __str__(self):
         return f"{self.building.code}-{self.number}"
@@ -46,7 +67,7 @@ class BedSpace(models.Model):
     claim_code = models.CharField(max_length=12, unique=True, blank=True)
 
     class Meta:
-        unique_together = ["unit", "label"]
+        unique_together = ("unit", "label")
 
     def __str__(self):
         return f"{self.unit.building.code}-{self.label}"
@@ -67,7 +88,7 @@ class CommonArea(models.Model):
     creates the three visibility tiers - see README section 6.1.
     """
 
-    AREA_TYPES = [
+    AREA_TYPES = (
         ("kitchen", "Kitchen"),
         ("bathroom", "Bathroom"),
         ("lounge", "Lounge"),
@@ -76,7 +97,7 @@ class CommonArea(models.Model):
         ("study", "Study centre"),
         ("corridor", "Corridor"),
         ("other", "Other"),
-    ]
+    )
 
     # Always set, even for unit-level areas. Building-wide areas are the
     # ones where unit is null - filter on unit__isnull=True.
@@ -92,3 +113,102 @@ class CommonArea(models.Model):
         if self.unit:
             return f"{self.unit} — {self.name}"
         return f"{self.building.code} — {self.name}"
+
+
+class Category(models.Model):
+    """A type of fault, carrying a minimum priority.
+
+    The floor is stored as data rather than in code so staff can adjust
+    it in the admin.
+    """
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(unique=True)
+    minimum_priority = models.IntegerField(
+        choices=Priority.choices, default=Priority.LOW)
+
+    class Meta:
+        verbose_name_plural = "categories"
+
+    def __str__(self):
+        return self.name
+
+
+class StudentProfile(models.Model):
+    """Links a user account to the bed space they occupy.
+
+    The one-to-one on bed_space enforces single occupancy at the
+    database level, which is what makes a claim code single-use.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    bed_space = models.OneToOneField(BedSpace, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return f"{self.user.username} ({self.bed_space})"
+
+    @property
+    def unit(self):
+        return self.bed_space.unit
+
+    @property
+    def building(self):
+        return self.bed_space.unit.building
+
+
+class Report(models.Model):
+    """A maintenance fault reported by a student.
+
+    Exactly one of bed_space or common_area is set - the location
+    determines who can see the report. See README section 6.1.
+    """
+    reporter = models.ForeignKey(User, on_delete=models.PROTECT,
+                                 related_name="reports")
+    bed_space = models.ForeignKey(BedSpace, on_delete=models.PROTECT,
+                                  null=True, blank=True,
+                                  related_name="reports")
+    common_area = models.ForeignKey(CommonArea, on_delete=models.PROTECT,
+                                    null=True, blank=True,
+                                    related_name="reports")
+    category = models.ForeignKey(Category, on_delete=models.PROTECT,
+                                 related_name="reports")
+    description = models.TextField()
+
+    # Triage answers - see README section 7.2
+    water_active = models.BooleanField(default=False)
+    cannot_secure = models.BooleanField(default=False)
+    electrical_hazard = models.BooleanField(default=False)
+    room_unusable = models.BooleanField(default=False)
+
+    derived_priority = models.IntegerField(choices=Priority.choices)
+    current_priority = models.IntegerField(choices=Priority.choices)
+
+    status = models.CharField(max_length=20, choices=Status.choices,
+                              default=Status.REPORTED)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL,
+                                    null=True, blank=True,
+                                    limit_choices_to={"is_staff": True},
+                                    related_name="assigned_reports")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-current_priority", "created_at")
+        constraints = (
+            models.CheckConstraint(
+                condition=(
+                    models.Q(bed_space__isnull=False,
+                             common_area__isnull=True)
+                    | models.Q(bed_space__isnull=True,
+                               common_area__isnull=False)
+                ),
+                name="report_has_exactly_one_location",
+            ),
+        )
+
+    def __str__(self):
+        return f"#{self.pk} {self.location} ({self.get_status_display()})"
+
+    @property
+    def location(self):
+        return self.bed_space or self.common_area
