@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import Building, Unit, BedSpace, CommonArea
+
+admin.site.register(Building)
+admin.site.register(Unit)
+admin.site.register(BedSpace)
+admin.site.register(CommonArea)
