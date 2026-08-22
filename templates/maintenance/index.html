@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>ResFix</h2>
+  <p>Report and track maintenance issues in your residence.</p>
+
+  {% if user.is_authenticated %}
+    <p>Logged in as {{ user.username }}.</p>
+  {% else %}
+    <p>Log in or register with the code you were given at reception.</p>
+  {% endif %}
+{% endblock content %}

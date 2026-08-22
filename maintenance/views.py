@@ -1,3 +1,6 @@
 from django.shortcuts import render
 
-# Create your views here.
+
+def index(request):
+    """The ResFix home page."""
+    return render(request, "maintenance/index.html")

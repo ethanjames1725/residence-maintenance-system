@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Log in</h2>
+
+  {% if form.errors %}
+    <p>Username or password incorrect.</p>
+  {% endif %}
+
+  <form action="{% url 'login' %}" method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <input type="hidden" name="next" value="{% url 'maintenance:index' %}" />
+    <button type="submit">Log in</button>
+  </form>
+
+{% endblock content %}

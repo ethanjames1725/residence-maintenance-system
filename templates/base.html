@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ResFix</title>
+  </head>
+  <body>
+
+    <nav>
+      <a href="{% url 'maintenance:index' %}">ResFix</a>
+
+      {% if user.is_authenticated %}
+        <span>{{ user.username }}</span>
+        <form action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button type="submit">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}">Log in</a>
+        <a href="{% url 'accounts:register' %}">Register</a>
+      {% endif %}
+    </nav>
+
+    {% block content %}{% endblock content %}
+
+  </body>
+</html>
