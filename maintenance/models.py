@@ -212,3 +212,54 @@ class Report(models.Model):
     @property
     def location(self):
         return self.bed_space or self.common_area
+
+
+class ReportEvent(models.Model):
+    """One entry in a report's timeline.
+
+    Covers both the comments students see and the record of status and
+    priority changes, so the detail page renders from a single query.
+    """
+
+    class EventType(models.TextChoices):
+        COMMENT = "comment", "Comment"
+        STATUS_CHANGE = "status_change", "Status change"
+        PRIORITY_CHANGE = "priority_change", "Priority change"
+        ESCALATION = "escalation", "Escalation"
+
+    report = models.ForeignKey(Report, on_delete=models.CASCADE,
+                               related_name="events")
+    # Null for system-generated events such as corroboration escalation.
+    author = models.ForeignKey(User, on_delete=models.SET_NULL,
+                               null=True, blank=True,
+                               related_name="report_events")
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    body = models.TextField(blank=True)
+    from_value = models.CharField(max_length=30, blank=True)
+    to_value = models.CharField(max_length=30, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} on #{self.report_id}"
+
+
+class Corroboration(models.Model):
+    """A student confirming they have the same fault.
+
+    Unique together is the database-level version of "once only" -
+    see README section 6.3.
+    """
+    report = models.ForeignKey(Report, on_delete=models.CASCADE,
+                               related_name="corroborations")
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                                related_name="corroborations")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("report", "student")
+
+    def __str__(self):
+        return f"{self.student.username} on #{self.report_id}"
