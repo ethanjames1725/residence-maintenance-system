@@ -317,18 +317,23 @@ not anticipate. Both are required.
 ## 10. Report Workflow
 
 ```mermaid
-stateDiagram-v2
-    state "In Progress" as InProgress
-    [*] --> Reported
-    Reported --> Acknowledged
-    Reported --> Cancelled: withdrawn
-    Acknowledged --> InProgress
-    Acknowledged --> Cancelled: not found
-    InProgress --> Resolved
-    Resolved --> Closed: confirmed fixed
-    Resolved --> InProgress: still broken
-    Closed --> [*]
-    Cancelled --> [*]
+flowchart TD
+    A("Reported<br>submitted by a student") --> B("Acknowledged<br>staff member assigned")
+    A -->|withdrawn| X("Cancelled<br>never worked on")
+    B --> C("In Progress<br>work underway")
+    B -->|not found| X
+    C --> D("Resolved<br>awaiting confirmation")
+    D -->|confirmed fixed| E("Closed<br>resident agrees it is done")
+    D -->|still broken| C
+
+    classDef open fill:#dbeafe,stroke:#60a5fa,color:#1e3a8a
+    classDef wait fill:#fef3c7,stroke:#f59e0b,color:#78350f
+    classDef done fill:#dcfce7,stroke:#4ade80,color:#14532d
+    classDef stop fill:#fee2e2,stroke:#f87171,color:#7f1d1d
+    class A,B,C open
+    class D wait
+    class E done
+    class X stop
 ```
 
 | Status | Meaning |
