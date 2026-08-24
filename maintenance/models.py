@@ -154,6 +154,31 @@ class StudentProfile(models.Model):
         return self.bed_space.unit.building
 
 
+class ReportQuerySet(models.QuerySet):
+    """Query methods for reports.
+
+    visible_to() is the single implementation of the three visibility
+    tiers - see README section 6.1. Every view goes through it.
+    """
+
+    def visible_to(self, user):
+        if user.is_staff:
+            return self
+
+        bed_space = user.studentprofile.bed_space
+        unit = bed_space.unit
+
+        return self.filter(
+            # Tier 1: the student's own bed space
+            models.Q(bed_space=bed_space)
+            # Tier 2: common areas belonging to their unit
+            | models.Q(common_area__unit=unit)
+            # Tier 3: building-wide common areas
+            | models.Q(common_area__unit__isnull=True,
+                       common_area__building=unit.building)
+        )
+
+
 class Report(models.Model):
     """A maintenance fault reported by a student.
 
@@ -191,6 +216,8 @@ class Report(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ReportQuerySet.as_manager()
 
     class Meta:
         ordering = ("-current_priority", "created_at")
