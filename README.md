@@ -518,7 +518,7 @@ actually written.
 | Layer | Choice |
 |---|---|
 | Language | Python 3.12 |
-| Framework | Django 5.x |
+| Framework | Django 6.1 |
 | Database (development) | SQLite |
 | Database (production) | PostgreSQL |
 | Templates | Django templates |
@@ -838,11 +838,11 @@ AJAX endpoints to fill dependent registration dropdowns; the claim code removed 
 ```
 templates/
     base.html
-    index.html
-    accounts/
-        register.html
+    registration/
         login.html
+        register.html
     maintenance/
+        index.html
         my_reports.html
         report_detail.html
         new_report.html
