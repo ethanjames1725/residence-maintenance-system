@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>{{ report.location }}</h2>
+
+  <p>
+    #{{ report.id }} ·
+    {{ report.category }} ·
+    {{ report.get_current_priority_display }} ·
+    {{ report.get_status_display }}
+  </p>
+
+  <p>Reported by {{ report.reporter }} on
+     {{ report.created_at|date:"j M Y" }}</p>
+
+  <p>{{ report.description }}</p>
+
+  {% if report.corroborations.count %}
+    <p>{{ report.corroborations.count }} resident(s) confirmed this.</p>
+  {% endif %}
+
+  <h3>Updates</h3>
+
+  <ul>
+    {% for event in report.events.all %}
+      <li>
+        <strong>{{ event.author|default:"System" }}</strong>
+        {{ event.created_at|date:"j M Y, H:i" }}<br>
+        {{ event.body }}
+      </li>
+    {% empty %}
+      <li>No updates yet.</li>
+    {% endfor %}
+  </ul>
+
+  <p><a href="{% url 'maintenance:my_reports' %}">Back to my reports</a></p>
+{% endblock content %}

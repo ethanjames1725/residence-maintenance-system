@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>My reports</h2>
+
+  {% comment %} <p><a href="{% url 'maintenance:new_report' %}">Report a problem</a></p> {% endcomment %}
+
+  <ul>
+    {% for report in reports %}
+      <li>
+        <a href="{% url 'maintenance:report_detail' report.id %}">
+          {{ report.location }}
+        </a>
+        — {{ report.get_current_priority_display }}
+        — {{ report.get_status_display }}
+        <br>
+        {{ report.category }} · reported {{ report.created_at|date:"j M Y" }}
+      </li>
+    {% empty %}
+      <li>You have no reports yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock content %}
