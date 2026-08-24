@@ -943,11 +943,10 @@ are assessed requirements and are not negotiable.
 
 ## 26. Open Questions
 
-Things not yet settled, to be resolved during the build.
+Decisions made during the build, and questions still open.
 
-- **Custom queryset.** I have not written one before. If `visible_to()` proves awkward
-  as a queryset method, the fallback is a plain helper function called from each view —
-  less elegant, but the rule still lives in one place.
+- **Custom queryset.** Resolved. `visible_to()` works as a queryset method
+  and is covered by seven tests. The fallback helper function was not needed.
 - **Corroboration threshold.** Set at a fixed number for now. Whether it should scale
   with the size of the building is unresolved.
 - **The three-step reporting form.** Whether this is three separate views or one form
