@@ -815,7 +815,9 @@ URL behind it.
 | `/accounts/register/` | `register` | Anonymous |
 | `/accounts/login/`, `/accounts/logout/` | Django built-in | — |
 | `/reports/` | `my_reports` | Student |
-| `/reports/new/` | `new_report` | Student |
+| `/reports/new/` | `report_where` | Student |
+| `/reports/new/what/` | `report_what` | Student |
+| `/reports/new/describe/` | `report_describe` | Student |
 | `/reports/<id>/` | `report_detail` | Student, Staff |
 | `/reports/<id>/corroborate/` | `corroborate` | Student |
 | `/reports/<id>/confirm/` | `confirm_fixed` | Student |
@@ -949,6 +951,6 @@ Decisions made during the build, and questions still open.
   and is covered by seven tests. The fallback helper function was not needed.
 - **Corroboration threshold.** Set at a fixed number for now. Whether it should scale
   with the size of the building is unresolved.
-- **The three-step reporting form.** Whether this is three separate views or one form
-  revealed in stages is not decided. Three views is simpler to build and easier to get
-  right.
+- **The three-step reporting form.** Resolved: Three separate function-based views.
+  `django-formtools` was considered, but it is class-based and step 1 branches out of the flow
+  for common areas, which does not fit the wizard shape. Three plain views were chosen for the timeline.
