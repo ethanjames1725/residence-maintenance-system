@@ -1,8 +1,14 @@
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Category, CommonArea, Priority, Report
+from .models import Category, CommonArea, Priority, Report, Status
+
+
+def staff_required(view_func):
+    """Restrict a view to maintenance staff."""
+    return user_passes_test(
+        lambda u: u.is_staff, login_url="maintenance:index")(view_func)
 
 
 def index(request):
@@ -105,3 +111,20 @@ def report_describe(request):
     del request.session["category_id"]
 
     return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@staff_required
+def staff_queue(request):
+    """Every report, highest priority first."""
+    reports = Report.objects.all()
+
+    status = request.GET.get("status", "")
+    if status:
+        reports = reports.filter(status=status)
+
+    context = {
+        "reports": reports,
+        "statuses": Status.choices,
+        "current_status": status,
+    }
+    return render(request, "maintenance/staff_queue.html", context)

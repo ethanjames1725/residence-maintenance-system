@@ -10,16 +10,21 @@
     <nav>
       <a href="{% url 'maintenance:index' %}">ResFix</a>
 
-      {% if user.is_authenticated %}
-        <span>{{ user.username }}</span>
-        <form action="{% url 'logout' %}" method="post">
-          {% csrf_token %}
-          <button type="submit">Log out</button>
-        </form>
-      {% else %}
-        <a href="{% url 'login' %}">Log in</a>
-        <a href="{% url 'accounts:register' %}">Register</a>
-      {% endif %}
+        {% if user.is_authenticated %}
+          {% if user.is_staff %}
+            <a href="{% url 'maintenance:staff_queue' %}">Queue</a>
+          {% else %}
+            <a href="{% url 'maintenance:my_reports' %}">My reports</a>
+          {% endif %}
+          <span>{{ user.username }}</span>
+          <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Log out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}">Log in</a>
+          <a href="{% url 'accounts:register' %}">Register</a>
+        {% endif %}
     </nav>
 
     {% block content %}{% endblock content %}
