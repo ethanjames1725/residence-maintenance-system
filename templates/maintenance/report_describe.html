@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Report a problem</h2>
+
+  <form action="{% url 'maintenance:report_describe' %}" method="post">
+    {% csrf_token %}
+
+    <p>
+      <label for="description">What is wrong?</label><br>
+      <textarea name="description" id="description" rows="4" required></textarea>
+    </p>
+
+    <p>A few quick checks:</p>
+    <ul>
+      <li>
+        <label>
+          <input type="checkbox" name="water_active">
+          Water is currently running or leaking
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" name="cannot_secure">
+          A door or window will not lock securely
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" name="electrical_hazard">
+          There is a burning smell, sparks or exposed wiring
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" name="room_unusable">
+          The room cannot be used for sleeping tonight
+        </label>
+      </li>
+    </ul>
+
+    <p>These answers set how urgently the job is scheduled.</p>
+
+    <button type="submit">Submit report</button>
+  </form>
+
+  <p><a href="{% url 'maintenance:report_what' %}">Back</a></p>
+{% endblock content %}

@@ -11,4 +11,8 @@ urlpatterns = [
     path("reports/", views.my_reports, name="my_reports"),
     path("reports/<int:report_id>/", views.report_detail,
          name="report_detail"),
+    path("reports/new/", views.report_where, name="report_where"),
+    path("reports/new/what/", views.report_what, name="report_what"),
+    path("reports/new/describe/", views.report_describe,
+         name="report_describe"),
 ]

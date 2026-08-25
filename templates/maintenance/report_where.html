@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Report a problem</h2>
+  <p>Where is the problem?</p>
+
+  <form action="{% url 'maintenance:report_where' %}" method="post">
+    {% csrf_token %}
+
+    <p>
+      <button type="submit" name="location" value="bed_space">
+        In my room ({{ bed_space }})
+      </button>
+    </p>
+
+    {% if unit_areas %}
+      <p>In a shared space in my unit:</p>
+      <ul>
+        {% for area in unit_areas %}
+          <li>
+            <button type="submit" name="location" value="area-{{ area.id }}">
+              {{ area.name }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <p>In a building area:</p>
+    <ul>
+      {% for area in building_areas %}
+        <li>
+          <button type="submit" name="location" value="area-{{ area.id }}">
+            {{ area.name }}
+          </button>
+        </li>
+      {% empty %}
+        <li>No building areas listed.</li>
+      {% endfor %}
+    </ul>
+  </form>
+{% endblock content %}

@@ -3,7 +3,7 @@
 {% block content %}
   <h2>My reports</h2>
 
-  {% comment %} <p><a href="{% url 'maintenance:new_report' %}">Report a problem</a></p> {% endcomment %}
+  <p><a href="{% url 'maintenance:report_where' %}">Report a problem</a></p>
 
   <ul>
     {% for report in reports %}

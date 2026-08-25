@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Report a problem</h2>
+  <p>What kind of problem is it?</p>
+
+  <form action="{% url 'maintenance:report_what' %}" method="post">
+    {% csrf_token %}
+    <ul>
+      {% for category in categories %}
+        <li>
+          <button type="submit" name="category" value="{{ category.id }}">
+            {{ category.name }}
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  </form>
+
+  <p><a href="{% url 'maintenance:report_where' %}">Back</a></p>
+{% endblock content %}
