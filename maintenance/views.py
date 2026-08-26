@@ -1,8 +1,18 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from .models import Category, CommonArea, Priority, Report, Status
+from .models import (
+    Category,
+    CommonArea,
+    Priority,
+    Report,
+    ReportEvent,
+    Status,
+)
 
 
 def staff_required(view_func):
@@ -128,3 +138,66 @@ def staff_queue(request):
         "current_status": status,
     }
     return render(request, "maintenance/staff_queue.html", context)
+
+
+@staff_required
+@require_POST
+def assign_to_me(request, report_id):
+    """Take ownership of a report."""
+    report = get_object_or_404(Report, pk=report_id)
+
+    report.assigned_to = request.user
+    if report.status == Status.REPORTED:
+        report.status = Status.ACKNOWLEDGED
+    report.save()
+
+    ReportEvent.objects.create(
+        report=report,
+        author=request.user,
+        event_type=ReportEvent.EventType.STATUS_CHANGE,
+        body=f"Assigned to {request.user.username}.",
+        to_value=report.status,
+    )
+    return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@staff_required
+@require_POST
+def change_status(request, report_id):
+    """Move a report through the workflow."""
+    report = get_object_or_404(Report, pk=report_id)
+    new_status = request.POST["status"]
+
+    if not report.can_move_to(new_status):
+        raise Http404("That status change is not allowed.")
+
+    old_status = report.status
+    report.status = new_status
+    if new_status == Status.RESOLVED:
+        report.resolved_at = timezone.now()
+    report.save()
+
+    ReportEvent.objects.create(
+        report=report,
+        author=request.user,
+        event_type=ReportEvent.EventType.STATUS_CHANGE,
+        body=f"Status changed to {report.get_status_display()}.",
+        from_value=old_status,
+        to_value=new_status,
+    )
+    return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@staff_required
+@require_POST
+def add_comment(request, report_id):
+    """Post an update the reporter can see."""
+    report = get_object_or_404(Report, pk=report_id)
+
+    ReportEvent.objects.create(
+        report=report,
+        author=request.user,
+        event_type=ReportEvent.EventType.COMMENT,
+        body=request.POST["body"],
+    )
+    return redirect("maintenance:report_detail", report_id=report.id)

@@ -37,6 +37,16 @@ class Status(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+ALLOWED_TRANSITIONS = {
+    Status.REPORTED: (Status.ACKNOWLEDGED, Status.CANCELLED),
+    Status.ACKNOWLEDGED: (Status.IN_PROGRESS, Status.CANCELLED),
+    Status.IN_PROGRESS: (Status.RESOLVED,),
+    Status.RESOLVED: (Status.CLOSED, Status.IN_PROGRESS),
+    Status.CLOSED: (),
+    Status.CANCELLED: (),
+}
+
+
 class Building(models.Model):
     """A residence block."""
     name = models.CharField(max_length=100)
@@ -239,6 +249,16 @@ class Report(models.Model):
     @property
     def location(self):
         return self.bed_space or self.common_area
+
+    def can_move_to(self, new_status):
+        """Is this a permitted transition? See README section 10."""
+        return new_status in ALLOWED_TRANSITIONS[self.status]
+
+    @property
+    def next_statuses(self):
+        """Permitted transitions as (value, label) pairs, for templates."""
+        labels = dict(Status.choices)
+        return [(s, labels[s]) for s in ALLOWED_TRANSITIONS[self.status]]
 
 
 class ReportEvent(models.Model):

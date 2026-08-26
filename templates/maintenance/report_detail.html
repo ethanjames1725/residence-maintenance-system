@@ -33,5 +33,45 @@
     {% endfor %}
   </ul>
 
-  <p><a href="{% url 'maintenance:my_reports' %}">Back to my reports</a></p>
+  {% if user.is_staff %}
+    <h3>Staff actions</h3>
+
+    {% if not report.assigned_to %}
+      <form action="{% url 'maintenance:assign_to_me' report.id %}"
+            method="post">
+        {% csrf_token %}
+        <button type="submit">Assign to me</button>
+      </form>
+    {% else %}
+      <p>Assigned to {{ report.assigned_to }}.</p>
+    {% endif %}
+
+    {% if report.next_statuses %}
+      <form action="{% url 'maintenance:change_status' report.id %}"
+            method="post">
+        {% csrf_token %}
+        {% for value, label in report.next_statuses %}
+          <button type="submit" name="status" value="{{ value }}">
+            Move to {{ label }}
+          </button>
+        {% endfor %}
+      </form>
+    {% endif %}
+
+    <form action="{% url 'maintenance:add_comment' report.id %}"
+          method="post">
+      {% csrf_token %}
+      <p>
+        <label for="body">Post an update</label><br>
+        <textarea name="body" id="body" rows="3" required></textarea>
+      </p>
+      <button type="submit">Post update</button>
+    </form>
+  {% endif %}
+
+  {% if user.is_staff %}
+    <p><a href="{% url 'maintenance:staff_queue' %}">Back to queue</a></p>
+  {% else %}
+    <p><a href="{% url 'maintenance:my_reports' %}">Back to my reports</a></p>
+  {% endif %}
 {% endblock content %}

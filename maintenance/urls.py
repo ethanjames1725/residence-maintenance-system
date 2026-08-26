@@ -15,5 +15,11 @@ urlpatterns = [
     path("reports/new/what/", views.report_what, name="report_what"),
     path("reports/new/describe/", views.report_describe,
          name="report_describe"),
-     path("queue/", views.staff_queue, name="staff_queue"),
+    path("queue/", views.staff_queue, name="staff_queue"),
+    path("queue/<int:report_id>/assign/", views.assign_to_me,
+         name="assign_to_me"),
+    path("queue/<int:report_id>/status/", views.change_status,
+         name="change_status"),
+    path("queue/<int:report_id>/comment/", views.add_comment,
+         name="add_comment"),
 ]
