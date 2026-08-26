@@ -8,11 +8,11 @@ from django.views.decorators.http import require_POST
 from .models import (
     Category,
     CommonArea,
-    Priority,
     Report,
     ReportEvent,
     Status,
 )
+from .services import derive_priority
 
 
 def staff_required(view_func):
@@ -103,18 +103,23 @@ def report_describe(request):
 
     category = get_object_or_404(Category, pk=request.session["category_id"])
 
+    answers = {
+        "water_active": "water_active" in request.POST,
+        "cannot_secure": "cannot_secure" in request.POST,
+        "electrical_hazard": "electrical_hazard" in request.POST,
+        "room_unusable": "room_unusable" in request.POST,
+    }
+    priority = derive_priority(category, answers)
+
     report = Report.objects.create(
         reporter=request.user,
         bed_space=bed_space,
         common_area=common_area,
         category=category,
         description=request.POST["description"],
-        water_active="water_active" in request.POST,
-        cannot_secure="cannot_secure" in request.POST,
-        electrical_hazard="electrical_hazard" in request.POST,
-        room_unusable="room_unusable" in request.POST,
-        derived_priority=Priority.STANDARD,
-        current_priority=Priority.STANDARD,
+        derived_priority=priority,
+        current_priority=priority,
+        **answers,
     )
 
     del request.session["location"]
