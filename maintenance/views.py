@@ -56,7 +56,11 @@ def report_where(request):
     unit = profile.unit
 
     if request.method == "POST":
-        request.session["location"] = request.POST["location"]
+        location = request.POST["location"]
+        request.session["location"] = location
+
+        if location.startswith("area-"):
+            return redirect("maintenance:report_existing")
         return redirect("maintenance:report_what")
 
     context = {
@@ -66,6 +70,27 @@ def report_where(request):
             building=profile.building, unit__isnull=True),
     }
     return render(request, "maintenance/report_where.html", context)
+
+
+@login_required
+def report_existing(request):
+    """Show open reports for the chosen area before creating a new one.
+
+    Prevents duplicates at the point of creation - see README section 6.3.
+    """
+    location = request.session.get("location", "")
+    if not location.startswith("area-"):
+        return redirect("maintenance:report_where")
+
+    area_id = int(location.removeprefix("area-"))
+    reports = Report.objects.visible_to(request.user).filter(
+        common_area_id=area_id,
+        status__in=(Status.REPORTED, Status.ACKNOWLEDGED,
+                    Status.IN_PROGRESS),
+    )
+
+    context = {"reports": reports}
+    return render(request, "maintenance/report_existing.html", context)
 
 
 @login_required

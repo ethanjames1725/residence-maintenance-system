@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Report a problem</h2>
+
+  {% if reports %}
+    <p>These problems have already been reported here.
+       If yours is listed, confirm it instead of reporting it again.</p>
+
+    <ul>
+      {% for report in reports %}
+        <li>
+          {{ report.description }}<br>
+          {{ report.get_status_display }} ·
+          {{ report.corroborations.count }} resident(s) confirmed
+          <form action="{% url 'maintenance:corroborate' report.id %}"
+                method="post">
+            {% csrf_token %}
+            <button type="submit">I have this problem too</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <p>Not listed?
+       <a href="{% url 'maintenance:report_what' %}">
+         Report something else</a></p>
+  {% else %}
+    <p>Nothing has been reported here yet.</p>
+    <p><a href="{% url 'maintenance:report_what' %}">Continue</a></p>
+  {% endif %}
+
+  <p><a href="{% url 'maintenance:report_where' %}">Back</a></p>
+{% endblock content %}

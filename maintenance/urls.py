@@ -26,4 +26,6 @@ urlpatterns = [
          name="change_priority"),
     path("reports/<int:report_id>/corroborate/", views.corroborate,
          name="corroborate"),
+    path("reports/new/existing/", views.report_existing,
+         name="report_existing"),
 ]
