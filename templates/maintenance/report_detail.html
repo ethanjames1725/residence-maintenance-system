@@ -13,6 +13,10 @@
   <p>Reported by {{ report.reporter }} on
      {{ report.created_at|date:"j M Y" }}</p>
 
+  {% if report.derived_priority != report.current_priority %}
+    <p>Originally assessed as {{ report.get_derived_priority_display }}.</p>
+  {% endif %}
+
   <p>{{ report.description }}</p>
 
   {% if report.corroborations.count %}
@@ -57,6 +61,23 @@
         {% endfor %}
       </form>
     {% endif %}
+
+    <form action="{% url 'maintenance:change_priority' report.id %}"
+          method="post">
+      {% csrf_token %}
+      <p>
+        <label for="priority">Priority</label>
+        <select name="priority" id="priority">
+          {% for value, label in priorities %}
+            <option value="{{ value }}"
+              {% if value == report.current_priority %}selected{% endif %}>
+              {{ label }}
+            </option>
+          {% endfor %}
+        </select>
+        <button type="submit">Change</button>
+      </p>
+    </form>
 
     <form action="{% url 'maintenance:add_comment' report.id %}"
           method="post">

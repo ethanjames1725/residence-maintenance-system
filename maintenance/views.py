@@ -8,11 +8,12 @@ from django.views.decorators.http import require_POST
 from .models import (
     Category,
     CommonArea,
+    Priority,
     Report,
     ReportEvent,
     Status,
 )
-from .services import derive_priority
+from .services import derive_priority, record_priority_change
 
 
 def staff_required(view_func):
@@ -39,7 +40,7 @@ def report_detail(request, report_id):
     """One report and its timeline."""
     report = get_object_or_404(
         Report.objects.visible_to(request.user), pk=report_id)
-    context = {"report": report}
+    context = {"report": report, "priorities": Priority.choices}
     return render(request, "maintenance/report_detail.html", context)
 
 
@@ -205,4 +206,24 @@ def add_comment(request, report_id):
         event_type=ReportEvent.EventType.COMMENT,
         body=request.POST["body"],
     )
+    return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@staff_required
+@require_POST
+def change_priority(request, report_id):
+    """Override a derived priority, with the change recorded."""
+    report = get_object_or_404(Report, pk=report_id)
+    new_priority = int(request.POST["priority"])
+
+    if new_priority not in Priority.values:
+        raise Http404("That is not a valid priority.")
+
+    if new_priority != report.current_priority:
+        record_priority_change(
+            report,
+            new_priority,
+            author=request.user,
+            event_type=ReportEvent.EventType.PRIORITY_CHANGE,
+        )
     return redirect("maintenance:report_detail", report_id=report.id)
