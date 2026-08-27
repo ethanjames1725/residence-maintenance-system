@@ -19,8 +19,17 @@
 
   <p>{{ report.description }}</p>
 
-  {% if report.corroborations.count %}
-    <p>{{ report.corroborations.count }} resident(s) confirmed this.</p>
+  {% if not report.bed_space %}
+    <p>
+      {{ report.corroborations.count }} resident(s) confirmed this.
+      {% if not user.is_staff %}
+        <form action="{% url 'maintenance:corroborate' report.id %}"
+              method="post">
+          {% csrf_token %}
+          <button type="submit">I have this problem too</button>
+        </form>
+      {% endif %}
+    </p>
   {% endif %}
 
   <h3>Updates</h3>

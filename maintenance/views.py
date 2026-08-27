@@ -8,12 +8,17 @@ from django.views.decorators.http import require_POST
 from .models import (
     Category,
     CommonArea,
+    Corroboration,
     Priority,
     Report,
     ReportEvent,
     Status,
 )
-from .services import derive_priority, record_priority_change
+from .services import (
+    apply_corroboration_escalation,
+    derive_priority,
+    record_priority_change,
+)
 
 
 def staff_required(view_func):
@@ -226,4 +231,21 @@ def change_priority(request, report_id):
             author=request.user,
             event_type=ReportEvent.EventType.PRIORITY_CHANGE,
         )
+    return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@login_required
+@require_POST
+def corroborate(request, report_id):
+    """Record that this student has the same problem."""
+    report = get_object_or_404(
+        Report.objects.visible_to(request.user), pk=report_id)
+
+    if report.bed_space:
+        raise Http404("Private reports cannot be corroborated.")
+
+    Corroboration.objects.get_or_create(
+        report=report, student=request.user)
+    apply_corroboration_escalation(report)
+
     return redirect("maintenance:report_detail", report_id=report.id)

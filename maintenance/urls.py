@@ -24,4 +24,6 @@ urlpatterns = [
          name="add_comment"),
     path("queue/<int:report_id>/priority/", views.change_priority,
          name="change_priority"),
+    path("reports/<int:report_id>/corroborate/", views.corroborate,
+         name="corroborate"),
 ]
