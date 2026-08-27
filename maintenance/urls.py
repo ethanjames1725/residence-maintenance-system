@@ -28,4 +28,8 @@ urlpatterns = [
          name="corroborate"),
     path("reports/new/existing/", views.report_existing,
          name="report_existing"),
+    path("reports/<int:report_id>/confirm/", views.confirm_fixed,
+         name="confirm_fixed"),
+    path("reports/<int:report_id>/reopen/", views.reopen,
+         name="reopen"),
 ]

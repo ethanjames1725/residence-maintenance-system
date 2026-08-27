@@ -99,6 +99,20 @@
     </form>
   {% endif %}
 
+  {% if report.reporter == user and report.status == "resolved" %}
+    <h3>Is this fixed?</h3>
+    <form action="{% url 'maintenance:confirm_fixed' report.id %}"
+          method="post">
+      {% csrf_token %}
+      <button type="submit">Yes, it's fixed</button>
+    </form>
+    <form action="{% url 'maintenance:reopen' report.id %}"
+          method="post">
+      {% csrf_token %}
+      <button type="submit">No, still broken</button>
+    </form>
+  {% endif %}
+
   {% if user.is_staff %}
     <p><a href="{% url 'maintenance:staff_queue' %}">Back to queue</a></p>
   {% else %}

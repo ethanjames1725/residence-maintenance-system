@@ -269,8 +269,64 @@ def corroborate(request, report_id):
     if report.bed_space:
         raise Http404("Private reports cannot be corroborated.")
 
+    if report.reporter == request.user:
+        raise Http404("You cannot confirm your own report.")
+
     Corroboration.objects.get_or_create(
         report=report, student=request.user)
     apply_corroboration_escalation(report)
 
+    return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@login_required
+@require_POST
+def confirm_fixed(request, report_id):
+    """Student confirms a resolved fault is genuinely fixed."""
+    report = get_object_or_404(
+        Report.objects.visible_to(request.user), pk=report_id)
+
+    if report.reporter != request.user:
+        raise Http404("Only the reporter can close a report.")
+    if not report.can_move_to(Status.CLOSED):
+        raise Http404("This report cannot be closed.")
+
+    report.status = Status.CLOSED
+    report.save()
+
+    ReportEvent.objects.create(
+        report=report,
+        author=request.user,
+        event_type=ReportEvent.EventType.STATUS_CHANGE,
+        body="Reporter confirmed the fault is fixed.",
+        from_value=Status.RESOLVED,
+        to_value=Status.CLOSED,
+    )
+    return redirect("maintenance:report_detail", report_id=report.id)
+
+
+@login_required
+@require_POST
+def reopen(request, report_id):
+    """Student says a resolved fault is still broken."""
+    report = get_object_or_404(
+        Report.objects.visible_to(request.user), pk=report_id)
+
+    if report.reporter != request.user:
+        raise Http404("Only the reporter can reopen a report.")
+    if not report.can_move_to(Status.IN_PROGRESS):
+        raise Http404("This report cannot be reopened.")
+
+    report.status = Status.IN_PROGRESS
+    report.resolved_at = None
+    report.save()
+
+    ReportEvent.objects.create(
+        report=report,
+        author=request.user,
+        event_type=ReportEvent.EventType.STATUS_CHANGE,
+        body="Reporter says the fault is still there.",
+        from_value=Status.RESOLVED,
+        to_value=Status.IN_PROGRESS,
+    )
     return redirect("maintenance:report_detail", report_id=report.id)
